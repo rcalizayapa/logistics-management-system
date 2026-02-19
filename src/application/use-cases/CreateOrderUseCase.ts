@@ -1,6 +1,6 @@
-import { Order } from "../../domain/entities/Order";
-import { Location } from "../../domain/value-objects/Location";
-import { DeliveryType } from "../../domain/enums/DeliveryType";
+import { Order } from "../../domain/entities/Order.js";
+import { Location } from "../../domain/value-objects/Location.js";
+import { DeliveryType } from "../../domain/enums/DeliveryType.js";
 
 export class CreateOrderUseCase {
   execute(

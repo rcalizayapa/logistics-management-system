@@ -1,6 +1,6 @@
-import { Location } from "../value-objects/Location";
-import { DeliveryStatus } from "../enums/DeliveryStatus";
-import { DeliveryType } from "../enums/DeliveryType";
+import { Location } from "../value-objects/Location.js";
+import { DeliveryStatus } from "../enums/DeliveryStatus.js";
+import { DeliveryType } from "../enums/DeliveryType.js";
 
 export class Order {
   private status: DeliveryStatus;

@@ -1,5 +1,5 @@
-import { Driver } from "../../domain/entities/Driver";
-import { Location } from "../../domain/value-objects/Location";
+import { Driver } from "../../domain/entities/Driver.js";
+import { Location } from "../../domain/value-objects/Location.js";
 
 export class CreateDriverUseCase {
   execute(

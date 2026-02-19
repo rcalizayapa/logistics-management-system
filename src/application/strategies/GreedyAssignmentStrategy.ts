@@ -1,6 +1,6 @@
-import { AssignmentStrategy } from "./AssignmentStrategy";
-import { Driver } from "../../domain/entities/Driver";
-import { Order } from "../../domain/entities/Order";
+import { AssignmentStrategy } from "./AssignmentStrategy.js";
+import { Driver } from "../../domain/entities/Driver.js";
+import { Order } from "../../domain/entities/Order.js";
 
 export class GreedyAssignmentStrategy implements AssignmentStrategy {
   assign(order: Order, drivers: Driver[]): Driver | null {

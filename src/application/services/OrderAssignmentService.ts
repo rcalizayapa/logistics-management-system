@@ -1,6 +1,6 @@
-import { Order } from "../../domain/entities/Order";
-import { Driver } from "../../domain/entities/Driver";
-import { AssignmentStrategy } from "../strategies/AssignmentStrategy";
+import { Order } from "../../domain/entities/Order.js";
+import { Driver } from "../../domain/entities/Driver.js";
+import { AssignmentStrategy } from "../strategies/AssignmentStrategy.js";
 
 export class OrderAssignmentService {
   constructor(private strategy: AssignmentStrategy) {}

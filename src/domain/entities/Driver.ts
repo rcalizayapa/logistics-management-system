@@ -1,4 +1,4 @@
-import { Location } from "../value-objects/Location";
+import { Location } from "../value-objects/Location.js";
 
 export class Driver {
   private available: boolean = true;

@@ -8,7 +8,8 @@
     "esModuleInterop": true,
     "moduleResolution": "node16",
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node"]
   }
 }
 
