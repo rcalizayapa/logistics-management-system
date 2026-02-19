@@ -1,5 +1,5 @@
-//console.log("Logistics Management System Started");
-import { CreateOrderUseCase } from "./application/use-cases/CreateOrderUseCase";
+//Primer prueba que se realizo -->//console.log("Logistics Management System Started");
+/* Segunda prueba que se realizo -- > //import { CreateOrderUseCase } from "./application/use-cases/CreateOrderUseCase";
 import { CreateDriverUseCase } from "./application/use-cases/CreateDriverUseCase";
 import { DeliveryType } from "./domain/enums/DeliveryType";
 import { GreedyAssignmentStrategy } from "./application/strategies/GreedyAssignmentStrategy";
@@ -28,4 +28,12 @@ const assignmentService = new OrderAssignmentService(strategy);
 
 assignmentService.assignOrder(order, [driver1, driver2]);
 
-console.log("Order assigned successfully.");
+console.log("Order assigned successfully.");*/
+
+import { HttpServer } from "./infrastructure/server/HttpServer.js";
+
+console.log("Booting Logistics Management System...");
+
+const server = new HttpServer(3000);
+server.start();
+
