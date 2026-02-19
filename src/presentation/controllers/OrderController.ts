@@ -1,8 +1,16 @@
 import { CreateOrderUseCase } from "../../application/use-cases/CreateOrderUseCase.js";
+import { GetAllOrdersUseCase } from "../../application/use-cases/GetAllOrdersUseCase.js";
 import { DeliveryType } from "../../domain/enums/DeliveryType.js";
+import { OrderRepository } from "../../domain/repositories/OrderRepository.js";
 
 export class OrderController {
-  private createOrderUseCase = new CreateOrderUseCase();
+  private createOrderUseCase: CreateOrderUseCase;
+  private getAllOrdersUseCase: GetAllOrdersUseCase;
+
+  constructor(orderRepository: OrderRepository) {
+    this.createOrderUseCase = new CreateOrderUseCase(orderRepository);
+    this.getAllOrdersUseCase = new GetAllOrdersUseCase(orderRepository);
+  }
 
   public create(reqBody: any) {
     const {
@@ -15,7 +23,7 @@ export class OrderController {
       end
     } = reqBody;
 
-    const order = this.createOrderUseCase.execute(
+    return this.createOrderUseCase.execute(
       id,
       latitude,
       longitude,
@@ -24,7 +32,10 @@ export class OrderController {
       new Date(start),
       new Date(end)
     );
+  }
 
-    return order;
+  public getAll() {
+    return this.getAllOrdersUseCase.execute();
   }
 }
+

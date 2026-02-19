@@ -1,9 +1,11 @@
 //No tocar -->//
 import http, { IncomingMessage, ServerResponse } from "node:http"; //-->No tocar
 import { OrderController } from "../../presentation/controllers/OrderController.js";
+import { OrderRepositoryMemory } from "../repositories/OrderRepositoryMemory.js";
 
 export class HttpServer {
-  private orderController = new OrderController();
+  private orderRepository = new OrderRepositoryMemory();
+  private orderController = new OrderController(this.orderRepository);
 
   private server = http.createServer(
     async (req: IncomingMessage, res: ServerResponse) => {
@@ -18,12 +20,6 @@ export class HttpServer {
     res: ServerResponse
   ): Promise<void> {
     res.setHeader("Content-Type", "application/json");
-
-    if (req.url === "/health" && req.method === "GET") {
-      res.statusCode = 200;
-      res.end(JSON.stringify({ status: "OK" }));
-      return;
-    }
 
     if (req.url === "/orders" && req.method === "POST") {
       let body = "";
@@ -41,6 +37,14 @@ export class HttpServer {
         res.end(JSON.stringify(order));
       });
 
+      return;
+    }
+
+    if (req.url === "/orders" && req.method === "GET") {
+      const orders = this.orderController.getAll();
+
+      res.statusCode = 200;
+      res.end(JSON.stringify(orders));
       return;
     }
 
