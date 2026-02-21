@@ -6,6 +6,7 @@ import { OrderRepositoryMemory } from "../repositories/OrderRepositoryMemory.js"
 import { DriverRepositoryMemory } from "../repositories/DriverRepositoryMemory.js";
 import { GreedyAssignmentStrategy } from "../../application/strategies/GreedyAssignmentStrategy.js";
 import { AssignOrderUseCase } from "../../application/use-cases/AssignOrderUseCase.js";
+import { GenerateDriverRouteUseCase } from "../../application/use-cases/GenerateDriverRouteUseCase.js";
 
 export class HttpServer {
   private orderRepository = new OrderRepositoryMemory();
@@ -19,6 +20,11 @@ export class HttpServer {
     this.orderRepository,
     this.driverRepository,
     this.strategy
+  );
+
+  private generateRouteUseCase = new GenerateDriverRouteUseCase(
+    this.driverRepository,
+    this.orderRepository
   );
 
   private server = http.createServer(
@@ -76,6 +82,17 @@ export class HttpServer {
       if (req.url === "/drivers" && req.method === "GET") {
         res.statusCode = 200;
         res.end(JSON.stringify(this.driverController.getAll()));
+        return;
+      }
+
+      if (req.url?.startsWith("/drivers/") && req.method === "GET") {
+        const parts = req.url.split("/");
+        const driverId = parts[2];
+
+        const route = this.generateRouteUseCase.execute(driverId);
+
+        res.statusCode = 200;
+        res.end(JSON.stringify(route));
         return;
       }
 
