@@ -9,7 +9,7 @@ import { AssignOrderUseCase } from "../../application/use-cases/AssignOrderUseCa
 import { GenerateDriverRouteUseCase } from "../../application/use-cases/GenerateDriverRouteUseCase.js";
 import { RouteOptimizationService } from "../../application/services/RouteOptimizationService.js";
 import { GreedyRouteGenerator } from "../../application/services/GreedyRouteGenerator.js";
-import { NoOpRouteImprover } from "../../application/services/NoOpRouteImprover.js";
+import { TwoOptRouteImprover } from "../../application/services/TwoOptRouteImprover.js";
 
 export class HttpServer {
   private orderRepository = new OrderRepositoryMemory();
@@ -25,7 +25,7 @@ export class HttpServer {
     this.strategy
   );
   private routeGenerator = new GreedyRouteGenerator();
-  private routeImprover = new NoOpRouteImprover();
+  private routeImprover = new TwoOptRouteImprover();
 
   private routeOptimizationService = new RouteOptimizationService(
     this.routeGenerator,
