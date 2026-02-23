@@ -7,6 +7,9 @@ import { DriverRepositoryMemory } from "../repositories/DriverRepositoryMemory.j
 import { GreedyAssignmentStrategy } from "../../application/strategies/GreedyAssignmentStrategy.js";
 import { AssignOrderUseCase } from "../../application/use-cases/AssignOrderUseCase.js";
 import { GenerateDriverRouteUseCase } from "../../application/use-cases/GenerateDriverRouteUseCase.js";
+import { RouteOptimizationService } from "../../application/services/RouteOptimizationService.js";
+import { GreedyRouteGenerator } from "../../application/services/GreedyRouteGenerator.js";
+import { NoOpRouteImprover } from "../../application/services/NoOpRouteImprover.js";
 
 export class HttpServer {
   private orderRepository = new OrderRepositoryMemory();
@@ -21,10 +24,18 @@ export class HttpServer {
     this.driverRepository,
     this.strategy
   );
+  private routeGenerator = new GreedyRouteGenerator();
+  private routeImprover = new NoOpRouteImprover();
+
+  private routeOptimizationService = new RouteOptimizationService(
+    this.routeGenerator,
+    this.routeImprover
+  );
 
   private generateRouteUseCase = new GenerateDriverRouteUseCase(
     this.driverRepository,
-    this.orderRepository
+    this.orderRepository,
+    this.routeOptimizationService
   );
 
   private server = http.createServer(

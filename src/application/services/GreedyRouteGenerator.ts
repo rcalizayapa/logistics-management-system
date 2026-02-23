@@ -1,6 +1,6 @@
-import { Driver } from "../entities/Driver.js";
-import { Order } from "../entities/Order.js";
-import { IRouteGenerator } from "../interfaces/IRouteGenerator.js";
+import { Driver } from "../../domain/entities/Driver.js";
+import { Order } from "../../domain/entities/Order.js";
+import { IRouteGenerator } from "../../domain/interfaces/IRouteGenerator.js";
 import { DistanceCalculator } from "../../shared/utils/DistanceCalculator.js";
 
 export class GreedyRouteGenerator implements IRouteGenerator {
