@@ -8,47 +8,73 @@ import { DistanceCalculator } from "../../shared/utils/DistanceCalculator.js";
 export class RouteOptimizationService {
 
   constructor(
-    private readonly generator: IRouteGenerator,
-    private readonly improver: IRouteImprover
+    private generator: IRouteGenerator,
+    private improver: IRouteImprover
   ) {}
 
-  generateRoute(driver: Driver, orders: Order[]): Route {
+  generateRoute(driver: Driver, orders: Order[]) {
 
-    // 1️⃣ Generar ruta inicial
-    const generatedOrders = this.generator.generate(driver, orders);
+    // 1️ Generar ruta inicial (Greedy)
+    const initialRouteOrders = this.generator.generate(driver, orders);
 
-    // 2️⃣ Mejorar ruta
-    const improvedOrders = this.improver.improve(driver, generatedOrders);
+    const initialDistance = this.calculateTotalDistance(driver, initialRouteOrders);
 
-    // 3️⃣ Calcular métricas finales
+    // 2️ Mejorar con 2-opt
+    const improvedOrders = this.improver.improve(driver, initialRouteOrders);
+
+    const finalDistance = this.calculateTotalDistance(driver, improvedOrders);
+
+    // 3️ Calcular métricas
+    const improvementPercentage =
+      initialDistance === 0
+        ? 0
+        : ((initialDistance - finalDistance) / initialDistance) * 100;
+
+    const averageSpeedKmH = 40;
+    const estimatedTime = (finalDistance / averageSpeedKmH) * 60;
+
+    const route = new Route(
+      driver.getId(),
+      improvedOrders,
+      Number(finalDistance.toFixed(2)),
+      Number(estimatedTime.toFixed(2))
+    );
+
+    return {
+      route,
+      optimization: {
+        initialDistance: Number(initialDistance.toFixed(2)),
+        finalDistance: Number(finalDistance.toFixed(2)),
+        improvementPercentage: Number(improvementPercentage.toFixed(2))
+      }
+    };
+  }
+
+  private calculateTotalDistance(driver: Driver, route: Order[]): number {
+
     const driverLocation = driver["currentLocation"];
+
+    let totalDistance = 0;
     let currentLat = driverLocation.getLatitude();
     let currentLon = driverLocation.getLongitude();
-    let totalDistance = 0;
 
-    for (const order of improvedOrders) {
-      const location = order.getLocation();
+    for (const order of route) {
+
+      const orderLocation = order.getLocation();
 
       const distance = DistanceCalculator.calculateKm(
         currentLat,
         currentLon,
-        location.getLatitude(),
-        location.getLongitude()
+        orderLocation.getLatitude(),
+        orderLocation.getLongitude()
       );
 
       totalDistance += distance;
-      currentLat = location.getLatitude();
-      currentLon = location.getLongitude();
+
+      currentLat = orderLocation.getLatitude();
+      currentLon = orderLocation.getLongitude();
     }
 
-    const averageSpeedKmH = 40;
-    const estimatedTime = (totalDistance / averageSpeedKmH) * 60;
-
-    return new Route(
-      driver.getId(),
-      improvedOrders,
-      Number(totalDistance.toFixed(2)),
-      Number(estimatedTime.toFixed(2))
-    );
+    return totalDistance;
   }
 }
