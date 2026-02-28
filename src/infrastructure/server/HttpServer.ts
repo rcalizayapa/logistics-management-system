@@ -10,6 +10,7 @@ import { GenerateDriverRouteUseCase } from "../../application/use-cases/Generate
 import { RouteOptimizationService } from "../../application/services/RouteOptimizationService.js";
 import { GreedyRouteGenerator } from "../../application/services/GreedyRouteGenerator.js";
 import { TwoOptRouteImprover } from "../../application/services/TwoOptRouteImprover.js";
+import { UpdateDriverLocationUseCase } from "../../application/use-cases/UpdateDriverLocationUseCase.js";
 
 export class HttpServer {
   private orderRepository = new OrderRepositoryMemory();
@@ -31,6 +32,10 @@ export class HttpServer {
     this.routeGenerator,
     this.routeImprover
   );
+  private updateDriverLocationUseCase =
+    new UpdateDriverLocationUseCase(this.driverRepository);
+
+  private driverStreams: Map<string, ServerResponse[]> = new Map();
 
   private generateRouteUseCase = new GenerateDriverRouteUseCase(
     this.driverRepository,
@@ -50,11 +55,40 @@ export class HttpServer {
     req: IncomingMessage,
     res: ServerResponse
   ): Promise<void> {
+    
+    // --- NUEVO: ENDPOINT SSE (Debe ir ANTES de acumular el body) ---
+    if (req.url?.startsWith("/drivers/") && req.url?.endsWith("/stream") && req.method === "GET") {
+      const parts = req.url.split("/");
+      const driverId = parts[2];
+
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      });
+
+      if (!this.driverStreams.has(driverId)) {
+        this.driverStreams.set(driverId, []);
+      }
+
+      this.driverStreams.get(driverId)!.push(res);
+
+      req.on("close", () => {
+        const streams = this.driverStreams.get(driverId);
+        if (streams) {
+          this.driverStreams.set(
+            driverId,
+            streams.filter(s => s !== res)
+          );
+        }
+      });
+      return; // Importante: no seguimos con la lógica de abajo
+    }
+
     res.setHeader("Content-Type", "application/json");
 
     let body = "";
-
-    req.on("data", chunk => {
+    req.on("data", (chunk) => {
       body += chunk;
     });
 
@@ -96,10 +130,34 @@ export class HttpServer {
         return;
       }
 
+      // ACTUALIZAR UBICACIÓN
+      if (req.url?.startsWith("/drivers/") && req.url?.endsWith("/location") && req.method === "POST") {
+        const parts = req.url.split("/");
+        const driverId = parts[2];
+        const { latitude, longitude } = parsedBody;
+
+        const updated = this.updateDriverLocationUseCase.execute(
+          driverId,
+          latitude,
+          longitude
+        );
+
+        const streams = this.driverStreams.get(driverId);
+        if (streams) {
+          for (const stream of streams) {
+            stream.write(`data: ${JSON.stringify(updated)}\n\n`);
+          }
+        }
+
+        res.statusCode = 200;
+        res.end(JSON.stringify(updated));
+        return;
+      }
+
+      // GENERAR RUTA
       if (req.url?.startsWith("/drivers/") && req.method === "GET") {
         const parts = req.url.split("/");
         const driverId = parts[2];
-
         const route = this.generateRouteUseCase.execute(driverId);
 
         res.statusCode = 200;
@@ -118,5 +176,7 @@ export class HttpServer {
     });
   }
 }
+
+
 
 
