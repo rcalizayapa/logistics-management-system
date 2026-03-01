@@ -4,27 +4,24 @@ import { Route } from "../../domain/entities/Route.js";
 import { IRouteGenerator } from "../../domain/interfaces/IRouteGenerator.js";
 import { IRouteImprover } from "../../domain/interfaces/IRouteImprover.js";
 import { DistanceCalculator } from "../../shared/utils/DistanceCalculator.js";
+import { RouteHistoryRepositoryMemory } from "../../infrastructure/repositories/RouteHistoryRepositoryMemory.js";
 
 export class RouteOptimizationService {
 
   constructor(
     private generator: IRouteGenerator,
-    private improver: IRouteImprover
+    private improver: IRouteImprover,
+    private routeHistoryRepository: RouteHistoryRepositoryMemory 
   ) {}
 
   generateRoute(driver: Driver, orders: Order[]) {
 
-    // 1️ Generar ruta inicial (Greedy)
     const initialRouteOrders = this.generator.generate(driver, orders);
-
     const initialDistance = this.calculateTotalDistance(driver, initialRouteOrders);
 
-    // 2️ Mejorar con 2-opt
     const improvedOrders = this.improver.improve(driver, initialRouteOrders);
-
     const finalDistance = this.calculateTotalDistance(driver, improvedOrders);
 
-    // 3️ Calcular métricas
     const improvementPercentage =
       initialDistance === 0
         ? 0
@@ -40,6 +37,18 @@ export class RouteOptimizationService {
       Number(estimatedTime.toFixed(2))
     );
 
+    // CORRECCIÓN AQUÍ: Transformamos el array de Order[] a Location[]
+    // Usamos .map para obtener solo el objeto Location de cada orden
+    const routeLocations = improvedOrders.map(order => order.getLocation());
+
+    // FASE 10.5: Guardar en el historial usando el formato correcto
+    this.routeHistoryRepository.save({
+      driverId: driver.getId(),
+      route: routeLocations, // Ahora sí es de tipo Location[]
+      timestamp: new Date(),
+      type: "GENERATED" // Agregado para coincidir con tu interfaz RouteHistoryEntry
+    });
+
     return {
       route,
       optimization: {
@@ -51,15 +60,13 @@ export class RouteOptimizationService {
   }
 
   private calculateTotalDistance(driver: Driver, route: Order[]): number {
-
-    const driverLocation = driver["currentLocation"];
+    const driverLocation = (driver as any).currentLocation;
 
     let totalDistance = 0;
     let currentLat = driverLocation.getLatitude();
     let currentLon = driverLocation.getLongitude();
 
     for (const order of route) {
-
       const orderLocation = order.getLocation();
 
       const distance = DistanceCalculator.calculateKm(

@@ -11,31 +11,50 @@ import { RouteOptimizationService } from "../../application/services/RouteOptimi
 import { GreedyRouteGenerator } from "../../application/services/GreedyRouteGenerator.js";
 import { TwoOptRouteImprover } from "../../application/services/TwoOptRouteImprover.js";
 import { UpdateDriverLocationUseCase } from "../../application/use-cases/UpdateDriverLocationUseCase.js";
+// FASE 2: Importar EventBus
+import { EventBus } from "../../application/events/EventBus.js";
+// FASE 10.3: Importar CompleteDeliveryUseCase
+import { CompleteDeliveryUseCase } from "../../application/use-cases/CompleteDeliveryUseCase.js";
+// FASE 10.5: Importar Repositorio de Historial
+import { RouteHistoryRepositoryMemory } from "../repositories/RouteHistoryRepositoryMemory.js";
 
 export class HttpServer {
   private orderRepository = new OrderRepositoryMemory();
   private driverRepository = new DriverRepositoryMemory();
+  private routeHistoryRepository = new RouteHistoryRepositoryMemory();
+  
+  private eventBus = new EventBus();
 
   private orderController = new OrderController(this.orderRepository);
   private driverController = new DriverController(this.driverRepository);
 
   private strategy = new GreedyAssignmentStrategy();
+
   private assignOrderUseCase = new AssignOrderUseCase(
     this.orderRepository,
     this.driverRepository,
-    this.strategy
+    this.strategy,
+    this.eventBus
   );
+
   private routeGenerator = new GreedyRouteGenerator();
   private routeImprover = new TwoOptRouteImprover();
 
   private routeOptimizationService = new RouteOptimizationService(
     this.routeGenerator,
-    this.routeImprover
+    this.routeImprover,
+    this.routeHistoryRepository
   );
+
   private updateDriverLocationUseCase =
     new UpdateDriverLocationUseCase(this.driverRepository);
 
+  private completeDeliveryUseCase =
+    new CompleteDeliveryUseCase(this.driverRepository, this.eventBus);
+
   private driverStreams: Map<string, ServerResponse[]> = new Map();
+  // 10.6: Almacenamiento para el monitor global
+  private monitorStreams: ServerResponse[] = [];
 
   private generateRouteUseCase = new GenerateDriverRouteUseCase(
     this.driverRepository,
@@ -49,17 +68,53 @@ export class HttpServer {
     }
   );
 
-  constructor(private port: number) {}
+  constructor(private port: number) {
+    // 10.6: Conectar EventBus al Monitor Central
+    this.eventBus.subscribe("DRIVER_LOCATION_UPDATED", payload => {
+      this.broadcast({ type: "LOCATION", ...payload });
+    });
+
+    this.eventBus.subscribe("ORDER_ASSIGNED", payload => {
+      this.broadcast({ type: "ASSIGNMENT", ...payload });
+    });
+
+    this.eventBus.subscribe("DELIVERY_COMPLETED", payload => {
+      this.broadcast({ type: "DELIVERY", ...payload });
+    });
+  }
+
+  // 10.6: Método para retransmitir a todos los monitores conectados
+  private broadcast(payload: any): void {
+    for (const stream of this.monitorStreams) {
+      stream.write(`data: ${JSON.stringify(payload)}\n\n`);
+    }
+  }
 
   private async requestListener(
     req: IncomingMessage,
     res: ServerResponse
   ): Promise<void> {
     
-    // --- NUEVO: ENDPOINT SSE (Debe ir ANTES de acumular el body) ---
+    // --- 10.6: ENDPOINT SSE GLOBAL MONITOR ---
+    if (req.url === "/monitor" && req.method === "GET") {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      });
+
+      this.monitorStreams.push(res);
+
+      req.on("close", () => {
+        this.monitorStreams = this.monitorStreams.filter(s => s !== res);
+      });
+      return;
+    }
+
+    // SSE Individual para Drivers
     if (req.url?.startsWith("/drivers/") && req.url?.endsWith("/stream") && req.method === "GET") {
       const parts = req.url.split("/");
-      const driverId = parts[2];
+      const driverId = parts[2] as string;
 
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
@@ -82,7 +137,7 @@ export class HttpServer {
           );
         }
       });
-      return; // Importante: no seguimos con la lógica de abajo
+      return; 
     }
 
     res.setHeader("Content-Type", "application/json");
@@ -133,7 +188,7 @@ export class HttpServer {
       // ACTUALIZAR UBICACIÓN
       if (req.url?.startsWith("/drivers/") && req.url?.endsWith("/location") && req.method === "POST") {
         const parts = req.url.split("/");
-        const driverId = parts[2];
+        const driverId = parts[2] as string;
         const { latitude, longitude } = parsedBody;
 
         const updated = this.updateDriverLocationUseCase.execute(
@@ -154,10 +209,23 @@ export class HttpServer {
         return;
       }
 
+      // COMPLETAR ENTREGA
+      if (req.url?.startsWith("/drivers/") && req.url?.endsWith("/deliver") && req.method === "POST") {
+        const parts = req.url.split("/");
+        const driverId = parts[2] as string;
+        const { orderId } = parsedBody;
+
+        const result = this.completeDeliveryUseCase.execute(driverId, orderId);
+
+        res.statusCode = 200;
+        res.end(JSON.stringify(result));
+        return;
+      }
+
       // GENERAR RUTA
       if (req.url?.startsWith("/drivers/") && req.method === "GET") {
         const parts = req.url.split("/");
-        const driverId = parts[2];
+        const driverId = parts[2] as string;
         const route = this.generateRouteUseCase.execute(driverId);
 
         res.statusCode = 200;
@@ -176,7 +244,3 @@ export class HttpServer {
     });
   }
 }
-
-
-
-
