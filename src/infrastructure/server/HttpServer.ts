@@ -17,12 +17,17 @@ import { EventBus } from "../../application/events/EventBus.js";
 import { CompleteDeliveryUseCase } from "../../application/use-cases/CompleteDeliveryUseCase.js";
 // FASE 10.5: Importar Repositorio de Historial
 import { RouteHistoryRepositoryMemory } from "../repositories/RouteHistoryRepositoryMemory.js";
+import { IncidentRepositoryMemory } from "../repositories/IncidentRepositoryMemory.js";
+import { CreateIncidentUseCase } from "../../application/use-cases/CreateIncidentUseCase.js";
+import { StartIncidentProgressUseCase } from "../../application/use-cases/StartIncidentProgressUseCase.js";
+import { ResolveIncidentUseCase } from "../../application/use-cases/ResolveIncidentUseCase.js";
 
 export class HttpServer {
   private orderRepository = new OrderRepositoryMemory();
   private driverRepository = new DriverRepositoryMemory();
   private routeHistoryRepository = new RouteHistoryRepositoryMemory();
-  
+  private incidentRepository = new IncidentRepositoryMemory();
+
   private eventBus = new EventBus();
 
   private orderController = new OrderController(this.orderRepository);
@@ -52,6 +57,15 @@ export class HttpServer {
   private completeDeliveryUseCase =
     new CompleteDeliveryUseCase(this.driverRepository, this.eventBus);
 
+  private createIncidentUseCase =
+  new CreateIncidentUseCase(this.incidentRepository, this.eventBus);
+
+  private startIncidentProgressUseCase =
+  new StartIncidentProgressUseCase(this.incidentRepository, this.eventBus);
+
+  private resolveIncidentUseCase =
+  new ResolveIncidentUseCase(this.incidentRepository, this.eventBus);
+
   private driverStreams: Map<string, ServerResponse[]> = new Map();
   // 10.6: Almacenamiento para el monitor global
   private monitorStreams: ServerResponse[] = [];
@@ -80,6 +94,18 @@ export class HttpServer {
 
     this.eventBus.subscribe("DELIVERY_COMPLETED", payload => {
       this.broadcast({ type: "DELIVERY", ...payload });
+    });
+
+    this.eventBus.subscribe("INCIDENT_CREATED", payload => {
+      this.broadcast(payload);
+    });
+
+    this.eventBus.subscribe("INCIDENT_UPDATED", payload => {
+      this.broadcast(payload);
+    });
+
+    this.eventBus.subscribe("INCIDENT_RESOLVED", payload => {
+      this.broadcast(payload);
     });
   }
 
