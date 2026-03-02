@@ -11,16 +11,14 @@ import { RouteOptimizationService } from "../../application/services/RouteOptimi
 import { GreedyRouteGenerator } from "../../application/services/GreedyRouteGenerator.js";
 import { TwoOptRouteImprover } from "../../application/services/TwoOptRouteImprover.js";
 import { UpdateDriverLocationUseCase } from "../../application/use-cases/UpdateDriverLocationUseCase.js";
-// FASE 2: Importar EventBus
 import { EventBus } from "../../application/events/EventBus.js";
-// FASE 10.3: Importar CompleteDeliveryUseCase
 import { CompleteDeliveryUseCase } from "../../application/use-cases/CompleteDeliveryUseCase.js";
-// FASE 10.5: Importar Repositorio de Historial
 import { RouteHistoryRepositoryMemory } from "../repositories/RouteHistoryRepositoryMemory.js";
 import { IncidentRepositoryMemory } from "../repositories/IncidentRepositoryMemory.js";
 import { CreateIncidentUseCase } from "../../application/use-cases/CreateIncidentUseCase.js";
 import { StartIncidentProgressUseCase } from "../../application/use-cases/StartIncidentProgressUseCase.js";
 import { ResolveIncidentUseCase } from "../../application/use-cases/ResolveIncidentUseCase.js";
+import { GetOperationalDashboardUseCase } from "../../application/use-cases/GetOperationalDashboardUseCase.js";
 
 export class HttpServer {
   private orderRepository = new OrderRepositoryMemory();
@@ -67,13 +65,19 @@ export class HttpServer {
   new ResolveIncidentUseCase(this.incidentRepository, this.eventBus);
 
   private driverStreams: Map<string, ServerResponse[]> = new Map();
-  // 10.6: Almacenamiento para el monitor global
   private monitorStreams: ServerResponse[] = [];
 
   private generateRouteUseCase = new GenerateDriverRouteUseCase(
     this.driverRepository,
     this.orderRepository,
     this.routeOptimizationService
+  );
+
+  private getOperationalDashboardUseCase =
+  new GetOperationalDashboardUseCase(
+    this.driverRepository,
+    this.orderRepository,
+    this.incidentRepository
   );
 
   private server = http.createServer(
@@ -109,7 +113,6 @@ export class HttpServer {
     });
   }
 
-  // 10.6: Método para retransmitir a todos los monitores conectados
   private broadcast(payload: any): void {
     for (const stream of this.monitorStreams) {
       stream.write(`data: ${JSON.stringify(payload)}\n\n`);
@@ -175,6 +178,16 @@ export class HttpServer {
 
     req.on("end", () => {
       const parsedBody = body ? JSON.parse(body) : {};
+
+      //ENDPOINT DASHBOARD
+      if (req.url === "/dashboard" && req.method === "GET") {
+
+        const summary = this.getOperationalDashboardUseCase.execute();
+
+        res.statusCode = 200;
+        res.end(JSON.stringify(summary));
+        return;
+      }
 
       // ORDERS
       if (req.url === "/orders" && req.method === "POST") {

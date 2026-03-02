@@ -3,7 +3,7 @@ import { Location } from "../value-objects/Location.js";
 export class Driver {
   private available: boolean = true;
   private assignedOrders: string[] = [];
-  // 10.3: Nueva propiedad para el historial de entregas
+  // 10.3: Historial de entregas realizadas
   private deliveredOrders: string[] = [];
 
   constructor(
@@ -12,19 +12,24 @@ export class Driver {
     private currentLocation: Location
   ) {}
 
-  assignOrder(orderId: string): void {
+  public assignOrder(orderId: string): void {
     if (!this.available) {
       throw new Error("Driver is not available.");
     }
     this.assignedOrders.push(orderId);
   }
 
-  // 10.3: Método de entrega según indicación (Domain limpio)
+  // 10.3: Registra la orden como entregada (Domain limpio)
   public completeDelivery(orderId: string): void {
     this.deliveredOrders.push(orderId);
   }
 
-  setAvailability(status: boolean): void {
+  // 12.2: Retorna una copia de las órdenes entregadas para el Dashboard
+  public getDeliveredOrders(): string[] {
+    return [...this.deliveredOrders];
+  }
+
+  public setAvailability(status: boolean): void {
     this.available = status;
   }
 
@@ -36,9 +41,7 @@ export class Driver {
     this.currentLocation = location;
   }
 
-  getId(): string { return this.id; }
-  isAvailable(): boolean { return this.available; }
-  getAssignedOrders(): string[] { return [...this.assignedOrders]; }
-  getDeliveredOrders(): string[] { return [...this.deliveredOrders]; }
+  public getId(): string { return this.id; }
+  public isAvailable(): boolean { return this.available; }
+  public getAssignedOrders(): string[] { return [...this.assignedOrders]; }
 }
-
