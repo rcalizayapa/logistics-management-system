@@ -19,6 +19,7 @@ import { CreateIncidentUseCase } from "../../application/use-cases/CreateInciden
 import { StartIncidentProgressUseCase } from "../../application/use-cases/StartIncidentProgressUseCase.js";
 import { ResolveIncidentUseCase } from "../../application/use-cases/ResolveIncidentUseCase.js";
 import { GetOperationalDashboardUseCase } from "../../application/use-cases/GetOperationalDashboardUseCase.js";
+import { IncidentController } from "../../presentation/controllers/IncidentController.js";
 
 export class HttpServer {
   private orderRepository = new OrderRepositoryMemory();
@@ -56,13 +57,19 @@ export class HttpServer {
     new CompleteDeliveryUseCase(this.driverRepository, this.eventBus);
 
   private createIncidentUseCase =
-  new CreateIncidentUseCase(this.incidentRepository, this.eventBus);
+    new CreateIncidentUseCase(this.incidentRepository, this.eventBus);
 
   private startIncidentProgressUseCase =
-  new StartIncidentProgressUseCase(this.incidentRepository, this.eventBus);
+    new StartIncidentProgressUseCase(this.incidentRepository, this.eventBus);
 
   private resolveIncidentUseCase =
-  new ResolveIncidentUseCase(this.incidentRepository, this.eventBus);
+    new ResolveIncidentUseCase(this.incidentRepository, this.eventBus);
+
+  // Instanciamos los controladores necesarios para las nuevas rutas
+  private incidentController = new IncidentController(
+    this.createIncidentUseCase,
+    this.resolveIncidentUseCase
+  );
 
   private driverStreams: Map<string, ServerResponse[]> = new Map();
   private monitorStreams: ServerResponse[] = [];
@@ -74,11 +81,11 @@ export class HttpServer {
   );
 
   private getOperationalDashboardUseCase =
-  new GetOperationalDashboardUseCase(
-    this.driverRepository,
-    this.orderRepository,
-    this.incidentRepository
-  );
+    new GetOperationalDashboardUseCase(
+      this.driverRepository,
+      this.orderRepository,
+      this.incidentRepository
+    );
 
   private server = http.createServer(
     async (req: IncomingMessage, res: ServerResponse) => {
@@ -87,7 +94,6 @@ export class HttpServer {
   );
 
   constructor(private port: number) {
-    // 10.6: Conectar EventBus al Monitor Central
     this.eventBus.subscribe("DRIVER_LOCATION_UPDATED", payload => {
       this.broadcast({ type: "LOCATION", ...payload });
     });
@@ -124,47 +130,28 @@ export class HttpServer {
     res: ServerResponse
   ): Promise<void> {
     
-    // --- 10.6: ENDPOINT SSE GLOBAL MONITOR ---
     if (req.url === "/monitor" && req.method === "GET") {
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         "Connection": "keep-alive"
       });
-
       this.monitorStreams.push(res);
-
       req.on("close", () => {
         this.monitorStreams = this.monitorStreams.filter(s => s !== res);
       });
       return;
     }
 
-    // SSE Individual para Drivers
     if (req.url?.startsWith("/drivers/") && req.url?.endsWith("/stream") && req.method === "GET") {
       const parts = req.url.split("/");
       const driverId = parts[2] as string;
-
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive"
-      });
-
-      if (!this.driverStreams.has(driverId)) {
-        this.driverStreams.set(driverId, []);
-      }
-
+      res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+      if (!this.driverStreams.has(driverId)) this.driverStreams.set(driverId, []);
       this.driverStreams.get(driverId)!.push(res);
-
       req.on("close", () => {
         const streams = this.driverStreams.get(driverId);
-        if (streams) {
-          this.driverStreams.set(
-            driverId,
-            streams.filter(s => s !== res)
-          );
-        }
+        if (streams) this.driverStreams.set(driverId, streams.filter(s => s !== res));
       });
       return; 
     }
@@ -172,103 +159,102 @@ export class HttpServer {
     res.setHeader("Content-Type", "application/json");
 
     let body = "";
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
+    req.on("data", (chunk) => { body += chunk; });
 
-    req.on("end", () => {
+    req.on("end", async () => {
       const parsedBody = body ? JSON.parse(body) : {};
 
-      //ENDPOINT DASHBOARD
+      // 11.5: ENDPOINT DASHBOARD (Indicación app.get("/dashboard"))
       if (req.url === "/dashboard" && req.method === "GET") {
-
         const summary = this.getOperationalDashboardUseCase.execute();
-
         res.statusCode = 200;
         res.end(JSON.stringify(summary));
         return;
       }
 
-      // ORDERS
-      if (req.url === "/orders" && req.method === "POST") {
-        const order = this.orderController.create(parsedBody);
-        res.statusCode = 201;
-        res.end(JSON.stringify(order));
+      // 11.5: ENDPOINT CREAR INCIDENTE (Indicación app.post("/incidents"))
+      if (req.url === "/incidents" && req.method === "POST") {
+        // Adaptamos para usar el método del controlador solicitado
+        const customReq = { body: parsedBody };
+        const customRes = {
+          status: (code: number) => ({
+            json: (data: any) => {
+              res.statusCode = code;
+              res.end(JSON.stringify(data));
+            }
+          })
+        };
+        await this.incidentController.createIncident(customReq as any, customRes as any);
         return;
       }
 
+      // 11.5: ENDPOINT RESOLVER INCIDENTE (Indicación app.patch("/incidents/:incidentId/resolve"))
+      if (req.url?.startsWith("/incidents/") && req.url?.endsWith("/resolve") && req.method === "PATCH") {
+        const parts = req.url.split("/");
+        const incidentId = parts[2];
+        
+        const customReq = { params: { incidentId } };
+        const customRes = {
+          status: (code: number) => ({
+            json: (data: any) => {
+              res.statusCode = code;
+              res.end(JSON.stringify(data));
+            }
+          })
+        };
+        await this.incidentController.resolveIncident(customReq as any, customRes as any);
+        return;
+      }
+
+      // --- RUTAS EXISTENTES ---
+      if (req.url === "/orders" && req.method === "POST") {
+        res.statusCode = 201;
+        res.end(JSON.stringify(this.orderController.create(parsedBody)));
+        return;
+      }
       if (req.url === "/orders" && req.method === "GET") {
         res.statusCode = 200;
         res.end(JSON.stringify(this.orderController.getAll()));
         return;
       }
-
       if (req.url === "/orders/assign" && req.method === "POST") {
         this.assignOrderUseCase.execute(parsedBody.orderId);
         res.statusCode = 200;
         res.end(JSON.stringify({ message: "Order assigned successfully" }));
         return;
       }
-
-      // DRIVERS
       if (req.url === "/drivers" && req.method === "POST") {
-        const driver = this.driverController.create(parsedBody);
         res.statusCode = 201;
-        res.end(JSON.stringify(driver));
+        res.end(JSON.stringify(this.driverController.create(parsedBody)));
         return;
       }
-
       if (req.url === "/drivers" && req.method === "GET") {
         res.statusCode = 200;
         res.end(JSON.stringify(this.driverController.getAll()));
         return;
       }
-
-      // ACTUALIZAR UBICACIÓN
       if (req.url?.startsWith("/drivers/") && req.url?.endsWith("/location") && req.method === "POST") {
         const parts = req.url.split("/");
         const driverId = parts[2] as string;
-        const { latitude, longitude } = parsedBody;
-
-        const updated = this.updateDriverLocationUseCase.execute(
-          driverId,
-          latitude,
-          longitude
-        );
-
+        const updated = this.updateDriverLocationUseCase.execute(driverId, parsedBody.latitude, parsedBody.longitude);
         const streams = this.driverStreams.get(driverId);
-        if (streams) {
-          for (const stream of streams) {
-            stream.write(`data: ${JSON.stringify(updated)}\n\n`);
-          }
-        }
-
+        if (streams) streams.forEach(s => s.write(`data: ${JSON.stringify(updated)}\n\n`));
         res.statusCode = 200;
         res.end(JSON.stringify(updated));
         return;
       }
-
-      // COMPLETAR ENTREGA
       if (req.url?.startsWith("/drivers/") && req.url?.endsWith("/deliver") && req.method === "POST") {
         const parts = req.url.split("/");
         const driverId = parts[2] as string;
-        const { orderId } = parsedBody;
-
-        const result = this.completeDeliveryUseCase.execute(driverId, orderId);
-
         res.statusCode = 200;
-        res.end(JSON.stringify(result));
+        res.end(JSON.stringify(this.completeDeliveryUseCase.execute(driverId, parsedBody.orderId)));
         return;
       }
-
-      // GENERAR RUTA
       if (req.url?.startsWith("/drivers/") && req.method === "GET") {
         const parts = req.url.split("/");
         const driverId = parts[2] as string;
-        const route = this.generateRouteUseCase.execute(driverId);
-
         res.statusCode = 200;
-        res.end(JSON.stringify(route));
+        res.end(JSON.stringify(this.generateRouteUseCase.execute(driverId)));
         return;
       }
 
@@ -283,3 +269,4 @@ export class HttpServer {
     });
   }
 }
+
