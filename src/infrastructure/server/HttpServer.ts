@@ -262,11 +262,15 @@ export class HttpServer {
       res.end(JSON.stringify({ message: "Route not found" }));
     });
   }
+  public getApp() {
+    return this.server;
+  }
 
   public start(): void {
     this.server.listen(this.port, () => {
       console.log(`Server running on port ${this.port}`);
     });
   }
+  
 }
 

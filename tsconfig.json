@@ -9,7 +9,7 @@
     "moduleResolution": "node16",
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node","jest"],
   }
 }
 
