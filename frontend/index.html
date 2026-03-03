@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Logístico - Panel Principal</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar de navegación -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>LogiSys</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="active"><a href="index.html"><span class="icon">📊</span> Dashboard</a></li>
+                <li><a href="drivers.html"><span class="icon">🚚</span> Conductores</a></li>
+                <li><a href="orders.html"><span class="icon">📦</span> Pedidos</a></li>
+                <li><a href="incidents.html"><span class="icon">⚠️</span> Incidencias</a></li>
+            </ul>
+            <div class="system-status">
+                <div class="status-indicator online"></div>
+                <span>Sistema Online</span>
+            </div>
+        </nav>
+
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <h1>Panel de Control Operativo</h1>
+                <div class="header-actions">
+                    <button id="refreshDashboard" class="btn-secondary">↻ Actualizar</button>
+                    <div class="datetime" id="currentDateTime"></div>
+                </div>
+            </header>
+
+            <!-- Tarjetas de KPIs -->
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon">🚚</div>
+                    <div class="kpi-content">
+                        <h3>Conductores</h3>
+                        <div class="kpi-value" id="totalDrivers">0</div>
+                        <div class="kpi-detail">
+                            <span class="available" id="availableDrivers">0</span> disponibles
+                        </div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">📦</div>
+                    <div class="kpi-content">
+                        <h3>Pedidos</h3>
+                        <div class="kpi-value" id="totalOrders">0</div>
+                        <div class="kpi-detail">
+                            <span class="delivered" id="deliveredOrders">0</span> entregados
+                        </div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">⚠️</div>
+                    <div class="kpi-content">
+                        <h3>Incidencias</h3>
+                        <div class="kpi-value" id="totalIncidents">0</div>
+                        <div class="kpi-detail">
+                            <span class="open" id="openIncidents">0</span> abiertas
+                        </div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">⏱️</div>
+                    <div class="kpi-content">
+                        <h3>Rendimiento</h3>
+                        <div class="kpi-value" id="performanceRate">0%</div>
+                        <div class="kpi-detail">entregas a tiempo</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mapa y actividades recientes -->
+            <section class="dashboard-grid">
+                <div class="map-container">
+                    <h2>Mapa de Seguimiento en Tiempo Real</h2>
+                    <div id="liveMap" style="height: 400px; width: 100%;"></div>
+                </div>
+                <div class="recent-activities">
+                    <h2>Actividad Reciente</h2>
+                    <div id="activityFeed" class="activity-feed">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabla de pedidos activos -->
+            <section class="active-orders">
+                <h2>Pedidos en Tránsito</h2>
+                <div class="table-responsive">
+                    <table id="activeOrdersTable">
+                        <thead>
+                            <tr>
+                                <th>ID Pedido</th>
+                                <th>Conductor</th>
+                                <th>Destino</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeOrdersBody">
+                            <!-- Se llena dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/api/client.js"></script>
+    <script src="js/api/dashboard.js"></script>
+    <script src="js/api/orders.js"></script>
+    <script src="js/api/drivers.js"></script>
+    <script src="js/utils/map.js"></script>
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/utils/sse.js"></script>
+    <script src="js/pages/dashboard.js"></script>
+</body>
+</html>

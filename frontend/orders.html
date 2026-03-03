@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedidos - LogiSys</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar de navegación -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>LogiSys</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html"><span class="icon">📊</span> Dashboard</a></li>
+                <li><a href="drivers.html"><span class="icon">🚚</span> Conductores</a></li>
+                <li class="active"><a href="orders.html"><span class="icon">📦</span> Pedidos</a></li>
+                <li><a href="incidents.html"><span class="icon">⚠️</span> Incidencias</a></li>
+            </ul>
+            <div class="system-status">
+                <div class="status-indicator online"></div>
+                <span>Sistema Online</span>
+            </div>
+        </nav>
+
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <header class="page-header">
+                <h1>Gestión de Pedidos</h1>
+                <button id="openCreateOrderModal" class="btn-primary">+ Nuevo Pedido</button>
+            </header>
+
+            <!-- Filtros y búsqueda -->
+            <section class="filters-section">
+                <div class="search-box">
+                    <input type="text" id="searchOrder" placeholder="Buscar pedido por ID o dirección...">
+                </div>
+                <div class="filter-options">
+                    <select id="filterStatus">
+                        <option value="all">Todos los estados</option>
+                        <option value="PENDING">Pendientes</option>
+                        <option value="IN_TRANSIT">En tránsito</option>
+                        <option value="DELIVERED">Entregados</option>
+                        <option value="INCIDENT">Con incidencia</option>
+                    </select>
+                    <select id="filterType">
+                        <option value="all">Todos los tipos</option>
+                        <option value="EXPRESS">Express</option>
+                        <option value="STANDARD">Standard</option>
+                        <option value="SCHEDULED">Programado</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Estadísticas rápidas -->
+            <section class="stats-row">
+                <div class="stat-item">
+                    <span class="stat-label">Pendientes:</span>
+                    <span class="stat-value" id="pendingCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">En tránsito:</span>
+                    <span class="stat-value" id="transitCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Entregados hoy:</span>
+                    <span class="stat-value" id="deliveredToday">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Express:</span>
+                    <span class="stat-value" id="expressCount">0</span>
+                </div>
+            </section>
+
+            <!-- Lista de pedidos -->
+            <section class="orders-list">
+                <h2>Lista de Pedidos</h2>
+                <div class="table-responsive">
+                    <table id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Dirección</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Conductor</th>
+                                <th>Ventana Horaria</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center">Cargando pedidos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para crear pedido -->
+    <div id="createOrderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Crear Nuevo Pedido</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createOrderForm">
+                    <div class="form-group">
+                        <label for="orderId">ID del Pedido:</label>
+                        <input type="text" id="orderId" required placeholder="Ej: O001">
+                    </div>
+                    <div class="form-group">
+                        <label for="orderLatitude">Latitud:</label>
+                        <input type="number" id="orderLatitude" step="0.0001" required placeholder="-12.0500">
+                    </div>
+                    <div class="form-group">
+                        <label for="orderLongitude">Longitud:</label>
+                        <input type="number" id="orderLongitude" step="0.0001" required placeholder="-77.0300">
+                    </div>
+                    <div class="form-group">
+                        <label for="orderAddress">Dirección:</label>
+                        <input type="text" id="orderAddress" required placeholder="Dirección de entrega">
+                    </div>
+                    <div class="form-group">
+                        <label for="deliveryType">Tipo de Entrega:</label>
+                        <select id="deliveryType" required>
+                            <option value="EXPRESS">Express</option>
+                            <option value="STANDARD">Standard</option>
+                            <option value="SCHEDULED">Programado</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="timeWindowStart">Inicio ventana:</label>
+                            <input type="datetime-local" id="timeWindowStart" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="timeWindowEnd">Fin ventana:</label>
+                            <input type="datetime-local" id="timeWindowEnd" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary btn-block">Crear Pedido</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para asignar conductor -->
+    <div id="assignDriverModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Asignar Conductor</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Pedido: <strong id="assignOrderId"></strong></p>
+                <div class="form-group">
+                    <label for="driverSelect">Seleccionar Conductor:</label>
+                    <select id="driverSelect" required>
+                        <option value="">Cargando conductores...</option>
+                    </select>
+                </div>
+                <button id="confirmAssign" class="btn-primary btn-block">Asignar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/api/client.js"></script>
+    <script src="js/api/orders.js"></script>
+    <script src="js/api/drivers.js"></script>
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/pages/orders.js"></script>
+</body>
+</html>

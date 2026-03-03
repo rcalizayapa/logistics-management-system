@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conductores - LogiSys</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar de navegación -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>LogiSys</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html"><span class="icon">📊</span> Dashboard</a></li>
+                <li class="active"><a href="drivers.html"><span class="icon">🚚</span> Conductores</a></li>
+                <li><a href="orders.html"><span class="icon">📦</span> Pedidos</a></li>
+                <li><a href="incidents.html"><span class="icon">⚠️</span> Incidencias</a></li>
+            </ul>
+            <div class="system-status">
+                <div class="status-indicator online"></div>
+                <span>Sistema Online</span>
+            </div>
+        </nav>
+
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <header class="page-header">
+                <h1>Gestión de Conductores</h1>
+                <button id="openCreateDriverModal" class="btn-primary">+ Nuevo Conductor</button>
+            </header>
+
+            <!-- Filtros y búsqueda -->
+            <section class="filters-section">
+                <div class="search-box">
+                    <input type="text" id="searchDriver" placeholder="Buscar conductor por nombre o ID...">
+                </div>
+                <div class="filter-options">
+                    <select id="filterAvailability">
+                        <option value="all">Todos los estados</option>
+                        <option value="available">Disponibles</option>
+                        <option value="busy">Ocupados</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Mapa de conductores -->
+            <section class="map-container-small">
+                <h2>Ubicación de Conductores</h2>
+                <div id="driversMap" style="height: 300px; width: 100%;"></div>
+            </section>
+
+            <!-- Lista de conductores -->
+            <section class="drivers-list">
+                <h2>Lista de Conductores</h2>
+                <div class="table-responsive">
+                    <table id="driversTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Ubicación</th>
+                                <th>Estado</th>
+                                <th>Pedidos Asignados</th>
+                                <th>Entregas Completadas</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="driversTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center">Cargando conductores...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para crear conductor -->
+    <div id="createDriverModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Crear Nuevo Conductor</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createDriverForm">
+                    <div class="form-group">
+                        <label for="driverId">ID del Conductor:</label>
+                        <input type="text" id="driverId" required placeholder="Ej: D001">
+                    </div>
+                    <div class="form-group">
+                        <label for="driverName">Nombre:</label>
+                        <input type="text" id="driverName" required placeholder="Nombre completo">
+                    </div>
+                    <div class="form-group">
+                        <label for="driverLatitude">Latitud:</label>
+                        <input type="number" id="driverLatitude" step="0.0001" required placeholder="-12.0464">
+                    </div>
+                    <div class="form-group">
+                        <label for="driverLongitude">Longitud:</label>
+                        <input type="number" id="driverLongitude" step="0.0001" required placeholder="-77.0428">
+                    </div>
+                    <div class="form-group">
+                        <label for="driverAddress">Dirección:</label>
+                        <input type="text" id="driverAddress" required placeholder="Dirección actual">
+                    </div>
+                    <button type="submit" class="btn-primary btn-block">Crear Conductor</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ver detalles del conductor -->
+    <div id="driverDetailsModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2>Detalles del Conductor</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="driverDetailsContent"></div>
+                <div id="driverRouteMap" style="height: 300px; width: 100%;"></div>
+                <h3>Pedidos Asignados</h3>
+                <div id="driverOrdersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/api/client.js"></script>
+    <script src="js/api/drivers.js"></script>
+    <script src="js/api/orders.js"></script>
+    <script src="js/utils/map.js"></script>
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/pages/drivers.js"></script>
+</body>
+</html>

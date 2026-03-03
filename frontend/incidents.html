@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incidencias - LogiSys</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar de navegación -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>LogiSys</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html"><span class="icon">📊</span> Dashboard</a></li>
+                <li><a href="drivers.html"><span class="icon">🚚</span> Conductores</a></li>
+                <li><a href="orders.html"><span class="icon">📦</span> Pedidos</a></li>
+                <li class="active"><a href="incidents.html"><span class="icon">⚠️</span> Incidencias</a></li>
+            </ul>
+            <div class="system-status">
+                <div class="status-indicator online"></div>
+                <span>Sistema Online</span>
+            </div>
+        </nav>
+
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <header class="page-header">
+                <h1>Gestión de Incidencias</h1>
+                <button id="openCreateIncidentModal" class="btn-primary">+ Reportar Incidencia</button>
+            </header>
+
+            <!-- KPIs de incidencias -->
+            <section class="incident-kpis">
+                <div class="kpi-card small">
+                    <div class="kpi-icon">🟡</div>
+                    <div class="kpi-content">
+                        <h3>Abiertas</h3>
+                        <div class="kpi-value" id="openIncidentsCount">0</div>
+                    </div>
+                </div>
+                <div class="kpi-card small">
+                    <div class="kpi-icon">🔵</div>
+                    <div class="kpi-content">
+                        <h3>En Progreso</h3>
+                        <div class="kpi-value" id="inProgressCount">0</div>
+                    </div>
+                </div>
+                <div class="kpi-card small">
+                    <div class="kpi-icon">🟢</div>
+                    <div class="kpi-content">
+                        <h3>Resueltas</h3>
+                        <div class="kpi-value" id="resolvedCount">0</div>
+                    </div>
+                </div>
+                <div class="kpi-card small">
+                    <div class="kpi-icon">⏱️</div>
+                    <div class="kpi-content">
+                        <h3>Tiempo promedio</h3>
+                        <div class="kpi-value" id="avgResolutionTime">0h</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filtros -->
+            <section class="filters-section">
+                <div class="search-box">
+                    <input type="text" id="searchIncident" placeholder="Buscar por ID, conductor o pedido...">
+                </div>
+                <div class="filter-options">
+                    <select id="filterIncidentStatus">
+                        <option value="all">Todos los estados</option>
+                        <option value="OPEN">Abiertas</option>
+                        <option value="IN_PROGRESS">En progreso</option>
+                        <option value="RESOLVED">Resueltas</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Lista de incidencias -->
+            <section class="incidents-list">
+                <h2>Lista de Incidencias</h2>
+                <div class="table-responsive">
+                    <table id="incidentsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Pedido</th>
+                                <th>Conductor</th>
+                                <th>Descripción</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incidentsTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center">Cargando incidencias...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para crear incidencia -->
+    <div id="createIncidentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reportar Nueva Incidencia</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createIncidentForm">
+                    <div class="form-group">
+                        <label for="incidentId">ID de Incidencia:</label>
+                        <input type="text" id="incidentId" required placeholder="Ej: I001">
+                    </div>
+                    <div class="form-group">
+                        <label for="incidentDriverId">ID del Conductor:</label>
+                        <input type="text" id="incidentDriverId" required placeholder="Ej: D001">
+                    </div>
+                    <div class="form-group">
+                        <label for="incidentOrderId">ID del Pedido:</label>
+                        <input type="text" id="incidentOrderId" required placeholder="Ej: O001">
+                    </div>
+                    <div class="form-group">
+                        <label for="incidentDescription">Descripción:</label>
+                        <textarea id="incidentDescription" rows="3" required placeholder="Describa la incidencia..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary btn-block">Reportar Incidencia</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ver detalles de incidencia -->
+    <div id="incidentDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Detalles de Incidencia</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="incidentDetailsContent">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api/client.js"></script>
+    <script src="js/api/incidents.js"></script>
+    <script src="js/api/orders.js"></script>
+    <script src="js/api/drivers.js"></script>
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/pages/incidents.js"></script>
+</body>
+</html>
